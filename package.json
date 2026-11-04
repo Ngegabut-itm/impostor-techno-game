@@ -1,0 +1,26 @@
+{
+  "name": "impostor-techno",
+  "version": "1.0.0",
+  "description": "Multiplayer Real-time Social Deduction Game - Impostor Techno",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "multiplayer",
+    "among-us",
+    "socketio",
+    "game",
+    "social-deduction",
+    "office-tech"
+  ],
+  "author": "Antigravity Engineering",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.4"
+  }
+}

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Impostor Techno - Multiplayer Social Deduction Web Game</title>
+  
+  <!-- Modern Tech Fonts from Google CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Game Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- =========================================================================
+       AUDIO SYNTHESIZER ACTIVATION (Web Audio API unlocks on first interaction)
+       ========================================================================= -->
+  <div id="app-root">
+
+    <!-- =======================================================================
+         1. LOBBY SCREEN (LOGIN & ROOM SETUP)
+         ======================================================================= -->
+    <section id="screen-lobby" class="screen active">
+      <div class="lobby-background-decor">
+        <div class="cyber-grid"></div>
+        <div class="ambient-glow cyan-glow"></div>
+        <div class="ambient-glow purple-glow"></div>
+      </div>
+
+      <div class="lobby-container glass-card">
+        <!-- Logo & Lore Header -->
+        <header class="lobby-header">
+          <div class="badge-tag">OFFICE SOCIAL DEDUCTION GAME</div>
+          <h1 class="game-title">
+            <span class="text-cyan">IMPOSTOR</span>
+            <span class="text-rose">TECHNO</span>
+          </h1>
+          <p class="game-tagline">"Server Down, Wi-Fi Putus, Siapa yang Nge-drop Database?!"</p>
+        </header>
+
+        <!-- Player Profile Setup -->
+        <div class="lobby-form-section">
+          <div class="form-group">
+            <label for="player-name-input">NAMA ENGINEER / COWORKER</label>
+            <div class="input-icon-wrapper">
+              <span class="input-icon">👨‍💻</span>
+              <input type="text" id="player-name-input" maxlength="14" placeholder="Contoh: Budi Backend" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+
+          <!-- Color Swatch Selection -->
+          <div class="form-group">
+            <label>PILIH WARNA LANYARD & BADGE</label>
+            <div id="color-palette" class="color-palette">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Avatar Preview -->
+          <div class="avatar-preview-box">
+            <canvas id="avatar-preview-canvas" width="80" height="95"></canvas>
+            <div class="avatar-meta">
+              <span id="avatar-color-name" class="avatar-badge-title">Cyan Dev</span>
+              <span class="avatar-sub">Ready to deploy</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons (Create / Join Tabs) -->
+          <div id="lobby-action-tabs" class="action-tabs">
+            <button id="tab-btn-create" class="tab-btn active">BUAT ROOM KANTOR</button>
+            <button id="tab-btn-join" class="tab-btn">GABUNG ROOM (KODE)</button>
+          </div>
+
+          <!-- Create Room Form -->
+          <div id="tab-content-create" class="tab-content active">
+            <button id="btn-create-room" class="btn btn-primary btn-block">
+              <span class="btn-icon">⚡</span> BUAT WAR ROOM BARU
+            </button>
+          </div>
+
+          <!-- Join Room Form -->
+          <div id="tab-content-join" class="tab-content">
+            <div class="form-group">
+              <input type="text" id="room-code-input" maxlength="6" placeholder="KODE ROOM (MISAL: AB3D7)" autocomplete="off">
+            </div>
+            <button id="btn-join-room" class="btn btn-secondary btn-block">
+              <span class="btn-icon">🔗</span> MASUK KE ROOM
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- WAITING ROOM (AFTER CREATED / JOINED) -->
+      <div id="waiting-room-overlay" class="modal-overlay hidden">
+        <div class="modal-box glass-card waiting-room-box">
+          <header class="modal-header">
+            <div>
+              <span class="badge-tag">RUANG TUNGGU SPRINT</span>
+              <h2 class="modal-title">WAR ROOM: <span id="display-room-code" class="text-cyan font-mono">-----</span></h2>
+            </div>
+            <button id="btn-copy-code" class="btn btn-sm btn-outline" title="Salin Kode Room">
+              📋 Salin Kode
+            </button>
+          </header>
+
+          <p class="waiting-instruction">
+            Buka browser HP atau Laptop rekan kantor di Wi-Fi yang sama, masukkan kode di atas!
+          </p>
+
+          <!-- Players Roster -->
+          <div class="players-roster-section">
+            <div class="roster-header">
+              <span>COWORKER TERHUBUNG (<span id="connected-count">1</span>/10)</span>
+              <span id="role-hint" class="text-muted">1 Impostor akan dipilih acak</span>
+            </div>
+            <div id="roster-grid" class="roster-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Host Controls -->
+          <div class="waiting-actions">
+            <button id="btn-add-bot" class="btn btn-secondary">
+              🤖 + Tambah Bot Rekan (Simulasi)
+            </button>
+            <button id="btn-start-game" class="btn btn-success btn-large">
+              🚀 MULAI SPRINT (START GAME)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         2. IN-GAME HUD & CANVAS VIEWPORT (SLACKER / IMPOSTOR TECHNO RETRO-CARTOON STYLE)
+         ======================================================================= -->
+    <section id="screen-game" class="screen">
+      <!-- Top HUD: Progress Bar, Tasks Card, & Room Badge matching the screenshot -->
+      <div class="slacker-top-bar">
+        <!-- Top Left: Total Progress Bar -->
+        <div class="slacker-progress-wrapper">
+          <div class="slacker-progress-bar">
+            <div id="hud-progress-fill" class="slacker-progress-fill" style="width: 0%;"></div>
+            <span id="hud-progress-percentage" class="hidden">0%</span>
+          </div>
+
+          <!-- Tasks Card directly underneath Progress Bar (with vertical 'TASKS' tab) -->
+          <div id="slacker-tasks-card" class="slacker-tasks-card">
+            <div class="tasks-card-content">
+              <div class="tasks-card-header">TASKS</div>
+              <ul id="task-list" class="slacker-tasks-list">
+                <!-- Dynamically populated via JS matching screenshot: - Task Name [|||||||| 60%] -->
+              </ul>
+            </div>
+            <div id="btn-toggle-checklist" class="tasks-vertical-ribbon" title="Toggle Tasks Panel">TASKS</div>
+          </div>
+        </div>
+
+        <!-- Top Right: Room Pill Badge (e.g. ROOM: HRD-04 / ROOM: TECH-01) -->
+        <div class="slacker-top-right">
+          <div id="hud-current-room" class="slacker-zone-pill font-mono">🚨 WAR ROOM</div>
+          <div id="hud-room-badge" class="slacker-room-pill">
+            ROOM: <span id="hud-room-code" class="font-mono">TECH-01</span>
+          </div>
+
+          <!-- Role Badge (Compact indicator) -->
+          <div id="hud-role-card" class="slacker-role-indicator role-dev">
+            <span id="hud-role-icon">👨‍💻</span>
+            <span id="hud-role-title">DEV</span>
+            <span id="hud-role-subtitle" class="hidden">ENGINEER</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sabotage Emergency Alarm Banner (Appears during Kernel Panic) -->
+      <div id="sabotage-alarm-banner" class="alarm-banner hidden">
+        <div class="alarm-content">
+          <span class="alarm-icon">⚠️</span>
+          <div class="alarm-text">
+            <strong>CRITICAL: KERNEL PANIC & GATEWAY FAILURE!</strong>
+            <span>Lari ke Server Room untuk me-reboot core console sebelum cascadal crash!</span>
+          </div>
+          <div class="alarm-timer font-mono" id="sabotage-timer-display">40s</div>
+        </div>
+      </div>
+
+      <!-- Main Game Canvas -->
+      <div id="canvas-container">
+        <canvas id="game-canvas"></canvas>
+      </div>
+
+      <!-- Desktop Keyboard Controls Hint -->
+      <footer id="desktop-controls-hint" class="controls-hint glass-panel">
+        <div class="hint-key">WASD / Panah <span>Gerak</span></div>
+        <div class="hint-key">Space <span>Use</span></div>
+        <div class="hint-key">R <span>Report</span></div>
+        <div class="hint-key">Q <span>Slack / Revoke</span></div>
+        <div class="hint-key">E <span>Vent</span></div>
+      </footer>
+
+      <!-- Bottom Right Controls: Action Buttons Cluster (Exact Match to Screenshot) -->
+      <div id="mobile-touch-controls" class="mobile-touch-controls">
+        <!-- Left Thumb Virtual Joystick -->
+        <div id="joystick-zone" class="joystick-zone">
+          <div id="joystick-base" class="joystick-base">
+            <div id="joystick-thumb" class="joystick-thumb"></div>
+          </div>
+        </div>
+
+        <!-- Right Thumb: 2x2 Floating Action Buttons Grid (USE, ▶ VENT, REPORT, SLACK) -->
+        <div class="slacker-action-cluster">
+          <!-- Top Row: USE & VENT -->
+          <div class="action-row">
+            <!-- USE BUTTON (Large circular with badge) -->
+            <button id="btn-action-use" class="slacker-btn btn-use" title="Interact / Do Task">
+              <span class="btn-text-large">USE</span>
+              <div class="btn-sub-badge" title="Active Tool">🧪</div>
+            </button>
+
+            <!-- VENT BUTTON (Triangle ▶ with red light bar) -->
+            <button id="btn-action-vent" class="slacker-btn btn-vent" title="Server Rack Vent">
+              <span class="btn-icon-triangle">▶</span>
+              <div class="btn-bottom-bar red-bar"></div>
+            </button>
+          </div>
+
+          <!-- Bottom Row: REPORT & SLACK (KILL) -->
+          <div class="action-row">
+            <!-- REPORT BUTTON (Megaphone Icon) -->
+            <button id="btn-action-report" class="slacker-btn btn-report" title="Report Incident / BSOD">
+              <div class="megaphone-icon-wrapper">
+                <svg viewBox="0 0 24 24" class="megaphone-svg">
+                  <path fill="currentColor" d="M21 3H19C17.9 3 17 3.9 17 5V6.1C15.8 6.5 14.8 7.3 14.3 8.3L9 6.5V4C9 2.9 8.1 2 7 2H5C3.9 2 3 2.9 3 4V20C3 21.1 3.9 22 5 22H7C8.1 22 9 21.1 9 20V17.5L14.3 15.7C14.8 16.7 15.8 17.5 17 17.9V19C17 20.1 17.9 21 19 21H21C22.1 21 23 20.1 23 19V5C23 3.9 22.1 3 21 3M7 20H5V4H7V20M21 19H19V5H21V19Z"/>
+                </svg>
+              </div>
+              <span class="btn-sub-label">REPORT</span>
+            </button>
+
+            <!-- SLACK / KILL BUTTON (Thick Red Border with Impostor Head silhouette) -->
+            <button id="btn-action-kill" class="slacker-btn btn-slack" title="Silent Terminate / Slack">
+              <div class="impostor-head-icon">
+                <svg viewBox="0 0 36 40" class="impostor-svg">
+                  <!-- Red Capsule Body -->
+                  <path d="M6 18 C6 8, 12 4, 18 4 C24 4, 30 8, 30 18 L30 32 C30 35, 27 38, 24 38 L22 38 L22 33 L14 33 L14 38 L12 38 C9 38, 6 35, 6 32 Z" fill="#ef4444" stroke="#1e293b" stroke-width="2.5"/>
+                  <!-- Backpack -->
+                  <path d="M2 14 C2 11, 4 11, 6 11 L6 28 C4 28, 2 28, 2 25 Z" fill="#dc2626" stroke="#1e293b" stroke-width="2"/>
+                  <!-- Cyan Visor -->
+                  <ellipse cx="20" cy="16" rx="8" ry="5" fill="#38bdf8" stroke="#1e293b" stroke-width="2"/>
+                  <ellipse cx="22" cy="14" rx="4" ry="2" fill="#ffffff" opacity="0.7"/>
+                </svg>
+              </div>
+              <span class="btn-sub-label slack-label">SLACK</span>
+              <div id="kill-cooldown-overlay" class="cooldown-overlay"></div>
+              <span id="kill-cooldown-num" class="cooldown-num font-mono"></span>
+            </button>
+          </div>
+
+          <!-- Sabotage Trigger Button (Mini bar toggle) -->
+          <button id="btn-action-sabotage" class="slacker-btn btn-sabotage-mini hidden" title="Trigger Kernel Panic">
+            ⚡ SABOTASE
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         3. INTERACTIVE MINI-GAME TASK MODALS
+         ======================================================================= -->
+
+    <!-- TASK 1: FIX SWITCH & PATCH CORD (Mini-Game Sambung Kabel LAN) -->
+    <div id="modal-task-patch-cord" class="modal-overlay hidden">
+      <div class="modal-box mini-game-box glass-card">
+        <header class="mini-game-header">
+          <div>
+            <span class="badge-tag">SERVER ROOM // RACK SWITCH 01</span>
+            <h3 class="mini-game-title">Fix Switch & Patch Cord</h3>
+            <p class="mini-game-desc">Tarik dan hubungkan konektor kabel LAN ke port switch dengan warna yang cocok.</p>
+          </div>
+          <button class="btn-close-modal" data-close="modal-task-patch-cord">&times;</button>
+        </header>
+
+        <div class="cable-puzzle-board" id="cable-puzzle-container">
+          <!-- Left side: 4 Colored Cables -->
+          <div class="cable-ports-column left-ports" id="cable-sources">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Center: Interactive SVG Wires Canvas -->
+          <svg id="cable-svg-canvas" class="cable-svg-layer"></svg>
+
+          <!-- Right side: 4 RJ45 Switch Ports -->
+          <div class="cable-ports-column right-ports" id="cable-targets">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <div class="mini-game-footer">
+          <span id="cable-status-text" class="status-indicator">Sambungkan 4 kabel patch cord...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK 2: DEPLOY HOTFIX KE PRODUCTION (Slider & Validasi Deployment) -->
+    <div id="modal-task-deploy-hotfix" class="modal-overlay hidden">
+      <div class="modal-box mini-game-box glass-card">
+        <header class="mini-game-header">
+          <div>
+            <span class="badge-tag">DEV SPACE // CI/CD TERMINAL</span>
+            <h3 class="mini-game-title">Deploy Hotfix ke Production</h3>
+            <p class="mini-game-desc">Jalankan verifikasi commit, test suite, dan konfirmasi swipe deploy ke cluster.</p>
+          </div>
+          <button class="btn-close-modal" data-close="modal-task-deploy-hotfix">&times;</button>
+        </header>
+
+        <div class="hotfix-deployment-board">
+          <!-- Step 1: Commit Check -->
+          <div class="deploy-step active" id="deploy-step-1">
+            <div class="terminal-window">
+              <div class="terminal-bar">
+                <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                <span class="terminal-title">git checkout hotfix/null-pointer-fix</span>
+              </div>
+              <div class="terminal-body font-mono">
+                <p>> git fetch origin hotfix/prod-patch</p>
+                <p>> commit 7f8a91b: "fix(core): prevent race condition in order processing"</p>
+                <p class="text-cyan">> Ready to run automated regression suite.</p>
+              </div>
+            </div>
+            <button id="btn-run-tests" class="btn btn-primary btn-block">
+              ▶ JALANKAN TEST SUITE (100% PASS)
+            </button>
+          </div>
+
+          <!-- Step 2: Automated Tests Progress -->
+          <div class="deploy-step hidden" id="deploy-step-2">
+            <div class="terminal-window">
+              <div class="terminal-bar">
+                <span class="terminal-title">CI Runner - Jest & PyTest</span>
+              </div>
+              <div id="deploy-test-logs" class="terminal-body font-mono">
+                <p>> Executing AuthSuiteTest... <span class="text-emerald">PASSED [0.3s]</span></p>
+                <p>> Executing DatabasePoolTest... <span class="text-emerald">PASSED [0.5s]</span></p>
+                <p>> Executing RedisCacheEvictionTest... <span class="text-emerald">PASSED [0.2s]</span></p>
+              </div>
+            </div>
+            <div class="progress-track" style="margin: 16px 0;">
+              <div id="deploy-test-progress" class="progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Step 3: Swipe Slider to Deploy -->
+          <div class="deploy-step hidden" id="deploy-step-3">
+            <div class="slider-deploy-container">
+              <p class="slider-instruction">GESER SLIDER KE KANAN UNTUK PUSH KE PRODUCTION</p>
+              <div class="slider-track" id="deploy-slider-track">
+                <div class="slider-fill" id="deploy-slider-fill"></div>
+                <div class="slider-handle" id="deploy-slider-handle">🚀</div>
+                <span class="slider-label">SWIPE TO DEPLOY</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mini-game-footer">
+          <span id="deploy-status-text" class="status-indicator">Menunggu inisiasi testing...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK 3: RESTOCK BIJI KOPI PANTRY (Tap & Hold Espresso Machine) -->
+    <div id="modal-task-restock-coffee" class="modal-overlay hidden">
+      <div class="modal-box mini-game-box glass-card">
+        <header class="mini-game-header">
+          <div>
+            <span class="badge-tag">TECH PANTRY // ESPRESSO BAR</span>
+            <h3 class="mini-game-title">Restock Biji Kopi & Seduh Mug</h3>
+            <p class="mini-game-desc">Tekan & tahan tuas espresso. Lepaskan tepat saat cairan mencapai zona hijau (80-95%)!</p>
+          </div>
+          <button class="btn-close-modal" data-close="modal-task-restock-coffee">&times;</button>
+        </header>
+
+        <div class="coffee-station-board">
+          <!-- Espresso Machine Graphics -->
+          <div class="espresso-machine">
+            <div class="hopper-beans">
+              <span class="bean">☕</span><span class="bean">☕</span><span class="bean">☕</span>
+            </div>
+            <div class="coffee-spout">
+              <div id="coffee-stream" class="coffee-stream hidden"></div>
+            </div>
+            <!-- Mug with filling liquid -->
+            <div class="coffee-mug-wrapper">
+              <div class="coffee-gauge">
+                <div class="gauge-target-zone">OPTIMAL CREMA</div>
+                <div id="coffee-liquid" class="coffee-liquid" style="height: 0%;"></div>
+              </div>
+              <div class="mug-handle"></div>
+            </div>
+          </div>
+
+          <!-- Hold Lever Button -->
+          <div class="coffee-controls">
+            <button id="btn-pour-coffee" class="btn btn-warning btn-large btn-block">
+              ☕ TEKAN & TAHAN UNTUK MENGISI MUG
+            </button>
+            <p class="text-muted" style="text-align: center; margin-top: 8px; font-size: 0.85rem;">
+              Lepaskan tepat ketika cairan berada di bar hijau "OPTIMAL CREMA"!
+            </p>
+          </div>
+        </div>
+
+        <div class="mini-game-footer">
+          <span id="coffee-status-text" class="status-indicator">Mug kosong. Tahan tombol untuk mengisi...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK 4: RESTART CORE ROUTER (Countdown Timer 5s) -->
+    <div id="modal-task-restart-router" class="modal-overlay hidden">
+      <div class="modal-box mini-game-box glass-card">
+        <header class="mini-game-header">
+          <div>
+            <span class="badge-tag">SERVER ROOM // CORE GATEWAY ROUTER</span>
+            <h3 class="mini-game-title">Restart Core Router</h3>
+            <p class="mini-game-desc">Inisiasi cold reboot. Jangan keluar jendela sebelum countdown dan flushing ARP selesai (5s)!</p>
+          </div>
+          <button class="btn-close-modal" data-close="modal-task-restart-router">&times;</button>
+        </header>
+
+        <div class="router-reboot-board">
+          <!-- Router Rack Graphic -->
+          <div class="router-faceplate">
+            <div class="router-leds">
+              <span class="led green" id="led-pwr">PWR</span>
+              <span class="led green blink" id="led-act">ACT</span>
+              <span class="led green" id="led-wan">WAN</span>
+              <span class="led yellow" id="led-bgp">BGP</span>
+            </div>
+            <div class="router-brand font-mono">GATEWAY CISCO-XR // 100Gbps BACKBONE</div>
+          </div>
+
+          <!-- Terminal Logs -->
+          <div class="terminal-window">
+            <div id="router-reboot-logs" class="terminal-body font-mono">
+              <p>> System ready for power-cycle sequence.</p>
+              <p>> Tekan tombol 'INISIASI HARD REBOOT' untuk memulai countdown 5 detik.</p>
+            </div>
+          </div>
+
+          <!-- Countdown Progress Bar -->
+          <div class="router-countdown-container">
+            <div class="countdown-label">
+              <span>PROGRESS FLUSHING ROUTING TABLE</span>
+              <span id="router-countdown-sec" class="font-mono">5.0s</span>
+            </div>
+            <div class="progress-track">
+              <div id="router-reboot-fill" class="progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Reboot Button -->
+          <button id="btn-initiate-router-reboot" class="btn btn-rose btn-block">
+            ⚡ INISIASI HARD REBOOT CORE ROUTER
+          </button>
+        </div>
+
+        <div class="mini-game-footer">
+          <span id="router-status-text" class="status-indicator">Menunggu inisiasi reboot...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================================================================
+         4. SABOTAGE TERMINAL (KERNEL PANIC RESOLVER)
+         ======================================================================= -->
+    <div id="modal-sabotage-terminal" class="modal-overlay hidden">
+      <div class="modal-box mini-game-box glass-card border-rose">
+        <header class="mini-game-header">
+          <div>
+            <span class="badge-tag badge-rose">EMERGENCY INFRASTRUCTURE CONSOLE</span>
+            <h3 class="mini-game-title text-rose">Resolve Kernel Panic</h3>
+            <p class="mini-game-desc">Server mengalami cascading lock. Lakukan purge memori dan reset daemon!</p>
+          </div>
+          <button class="btn-close-modal" data-close="modal-sabotage-terminal">&times;</button>
+        </header>
+
+        <div class="sabotage-terminal-board">
+          <div class="terminal-window border-rose">
+            <div class="terminal-body font-mono text-rose">
+              <p>!!! KERNEL PANIC: FATAL EXCEPTION 0x000000DEAD !!!</p>
+              <p>Process 'systemd-networkd' killed with signal 11.</p>
+              <p>ALL FIREWALLS DOWN. CASCADE CRASH IN PROGRESS.</p>
+            </div>
+          </div>
+
+          <div class="emergency-switches">
+            <button id="btn-resolve-sabotage" class="btn btn-rose btn-large btn-block font-mono">
+              ⚠️ FORCE SYSTEM REBOOT & RESTORE POWER
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================================================================
+         5. INCIDENT WAR ROOM / EMERGENCY MEETING MODAL
+         ======================================================================= -->
+    <div id="modal-emergency-meeting" class="modal-overlay hidden">
+      <div class="modal-box war-room-modal glass-card">
+        <!-- Meeting Header -->
+        <header class="war-room-header">
+          <div class="war-room-title-area">
+            <div class="badge-tag badge-rose">🚨 INCIDENT WAR ROOM</div>
+            <h2 id="meeting-headline" class="war-room-title">EMERGENCY MEETING DIPANGGIL!</h2>
+            <p id="meeting-subheadline" class="war-room-sub">
+              Sdr. Budi memanggil rapat darurat untuk mengevaluasi tersangka insiden.
+            </p>
+          </div>
+          <!-- 40s Voting Countdown -->
+          <div class="meeting-timer-box glass-panel">
+            <span class="timer-title">WAKTU VOTING</span>
+            <span id="meeting-countdown-display" class="timer-digits font-mono">40s</span>
+          </div>
+        </header>
+
+        <!-- Voting Grid & Chat Section -->
+        <div class="war-room-body">
+          <!-- Left: Voting Grid -->
+          <div class="voting-section">
+            <div class="section-title">COWORKERS ELIGIBLE TO VOTE (<span id="vote-count-status">0/0 Voted</span>)</div>
+            <div id="voting-roster-grid" class="voting-roster-grid">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Skip Vote Button -->
+            <button id="btn-skip-vote" class="btn btn-outline btn-block" style="margin-top: 14px;">
+              🤷 SKIP VOTE (BUKTI BELUM CUKUP)
+            </button>
+          </div>
+
+          <!-- Right: Live War Room Incident Chat -->
+          <div class="chat-section glass-panel">
+            <div class="chat-header">
+              <span>💬 #incidents-war-room</span>
+              <span class="chat-status font-mono">LIVE TICKET</span>
+            </div>
+
+            <!-- Chat Message Feed -->
+            <div id="war-room-chat-feed" class="chat-feed">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Quick Response Reaction Chips for Mobile -->
+            <div class="quick-chat-chips">
+              <button class="chip-btn" data-msg="Siapa di Server Room tadi?">Siapa di Server?</button>
+              <button class="chip-btn" data-msg="Gue lagi ngerjain kabel di Server!">Gue lagi task</button>
+              <button class="chip-btn" data-msg="Gue liat dia deket laptop BSOD!">Liat deket BSOD</button>
+              <button class="chip-btn" data-msg="Sangat mencurigakan (Sus)!">Sus banget!</button>
+              <button class="chip-btn" data-msg="Skip dulu aja kawan!">Skip aja</button>
+            </div>
+
+            <!-- Chat Input Form -->
+            <form id="form-war-room-chat" class="chat-input-form">
+              <input type="text" id="input-meeting-chat" maxlength="80" placeholder="Ketik pesan tiket / pembelaan..." autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">KIRIM</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Meeting Ejection Results Screen (Overlay within War Room) -->
+        <div id="meeting-results-banner" class="results-banner hidden">
+          <div class="ejection-card glass-card">
+            <div class="ejection-avatar" id="ejection-avatar">💀</div>
+            <h2 id="ejection-verdict-title" class="ejection-title">Sdr. Budi was Revoked.</h2>
+            <p id="ejection-verdict-desc" class="ejection-desc font-mono">Dia bukan Impostor. (1 Impostor tersisa)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================================================================
+         6. GAME OVER SCREEN MODAL
+         ======================================================================= -->
+    <div id="modal-game-over" class="modal-overlay hidden">
+      <div class="modal-box game-over-box glass-card">
+        <div id="game-over-icon" class="game-over-icon">🏆</div>
+        <h1 id="game-over-title" class="game-over-title text-cyan">VICTORY</h1>
+        <p id="game-over-reason" class="game-over-desc">Seluruh tugas sprint kantor berhasil diselesaikan!</p>
+
+        <!-- True Role Reveals -->
+        <div class="role-reveal-section">
+          <span class="section-title">IDENTITAS ASLI SELURUH TIM:</span>
+          <div id="game-over-roster" class="roster-grid">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Restart Button -->
+        <div class="game-over-actions">
+          <button id="btn-play-again" class="btn btn-primary btn-large btn-block">
+            🔄 MAIN LAGI (KEMBALI KE LOBBY)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =======================================================================
+         7. SOUND & NOTIFICATION TOAST
+         ======================================================================= -->
+    <div id="toast-container" class="toast-container"></div>
+
+  </div>
+
+  <!-- Socket.io Client Script (Provided automatically by Socket.io server) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Main Game Client Script -->
+  <script src="game.js"></script>
+</body>
+</html>
